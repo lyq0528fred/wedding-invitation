@@ -232,7 +232,7 @@ h2.title{font-family:var(--serif-cn);font-weight:400;font-size:30px;letter-spaci
 
 
 <!-- [[音乐]] 把下面 <source> 的 src 换成你的音乐文件即可 -->
-<audio id="bgm" loop preload="auto">
+<audio id="bgm" loop autoplay playsinline preload="auto">
   <source src="music.mp3" type="audio/mpeg"><!-- 把背景音乐命名为 music.mp3 放在同一文件夹即可 -->
 </audio>
 
@@ -434,8 +434,13 @@ document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
 const bgm=document.getElementById('bgm'),musicBtn=document.getElementById('musicBtn');let musicReady=false;
 function hasAudioSrc(){const s=bgm.querySelector('source');return (s&&s.getAttribute('src'))||bgm.src;}
 musicBtn.addEventListener('click',async()=>{if(!hasAudioSrc()){flashMsg('音乐文件还没上传哦');return;}if(bgm.paused){try{await bgm.play();musicBtn.classList.add('playing');}catch(e){flashMsg('没找到 music.mp3');}}else{bgm.pause();musicBtn.classList.remove('playing');}});
-function tryAutoplay(){if(musicReady||!hasAudioSrc())return;bgm.play().then(()=>{musicBtn.classList.add('playing');musicReady=true;}).catch(()=>{});window.removeEventListener('touchstart',tryAutoplay);window.removeEventListener('click',tryAutoplay);window.removeEventListener('scroll',tryAutoplay);}
-window.addEventListener('touchstart',tryAutoplay,{once:true});window.addEventListener('scroll',tryAutoplay,{once:true});
+/* 自动播放：① 直接尝试 ② 微信 WeixinJSBridge ③ 用户首次交互兜底 */
+const _autoEvents=['touchstart','click','scroll','pointerdown'];
+function startMusic(){if(musicReady||!hasAudioSrc())return;bgm.play().then(()=>{musicBtn.classList.add('playing');musicReady=true;_autoEvents.forEach(ev=>window.removeEventListener(ev,startMusic));}).catch(()=>{});}
+startMusic(); // ① 加载即尝试（桌面/部分浏览器可成功）
+document.addEventListener('WeixinJSBridgeReady',startMusic,false); // ② 微信内置浏览器
+if(window.WeixinJSBridge){try{WeixinJSBridge.invoke('getNetworkType',{},startMusic);}catch(e){}}
+_autoEvents.forEach(ev=>window.addEventListener(ev,startMusic,{passive:true})); // ③ 首次交互兜底
 function flashMsg(t){const toast=document.createElement('div');toast.textContent=t;toast.style.cssText='position:fixed;top:62px;right:16px;z-index:60;background:var(--ink);color:#fff;font-size:12px;letter-spacing:.06em;padding:8px 14px;border-radius:20px;opacity:0;transition:.3s;';document.body.appendChild(toast);requestAnimationFrame(()=>toast.style.opacity='1');setTimeout(()=>{toast.style.opacity='0';setTimeout(()=>toast.remove(),300);},1800);}
 
 /* === 回执表单链接：把下面引号里换成你的问卷链接 === */
