@@ -431,9 +431,11 @@ const io=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){e.t
 document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
 
 /* music */
-const bgm=document.getElementById('bgm'),musicBtn=document.getElementById('musicBtn');let musicReady=false;
+const bgm=document.getElementById('bgm'),musicBtn=document.getElementById('musicBtn');let musicReady=false,userPaused=false;
 function hasAudioSrc(){const s=bgm.querySelector('source');return (s&&s.getAttribute('src'))||bgm.src;}
-musicBtn.addEventListener('click',async()=>{if(!hasAudioSrc()){flashMsg('音乐文件还没上传哦');return;}if(bgm.paused){try{await bgm.play();musicBtn.classList.add('playing');}catch(e){flashMsg('没找到 music.mp3');}}else{bgm.pause();musicBtn.classList.remove('playing');}});
+musicBtn.addEventListener('click',async()=>{if(!hasAudioSrc()){flashMsg('音乐文件还没上传哦');return;}if(bgm.paused){userPaused=false;try{await bgm.play();musicBtn.classList.add('playing');}catch(e){flashMsg('没找到 music.mp3');}}else{userPaused=true;bgm.pause();musicBtn.classList.remove('playing');}});
+/* 卡顿自动续播：网络缓冲中断后等数据回来自动继续（用户手动暂停时不打扰） */
+['stalled','waiting','pause'].forEach(ev=>bgm.addEventListener(ev,()=>{if(!userPaused&&musicReady){setTimeout(()=>{if(bgm.paused&&!userPaused)bgm.play().catch(()=>{});},700);}}));
 /* 自动播放：① 直接尝试 ② 微信 WeixinJSBridge ③ 用户首次交互兜底 */
 const _autoEvents=['touchstart','click','scroll','pointerdown'];
 function startMusic(){if(musicReady||!hasAudioSrc())return;bgm.play().then(()=>{musicBtn.classList.add('playing');musicReady=true;_autoEvents.forEach(ev=>window.removeEventListener(ev,startMusic));}).catch(()=>{});}
